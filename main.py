@@ -67,11 +67,15 @@ if __name__ == "__main__":
     import uvicorn
     import os
     
-    # Development server with hot reload
     port = int(os.environ.get("PORT", 8000))
+    debug = os.environ.get("DEBUG", "True").lower() == "true"
+    
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
         port=port,
-        reload=True if os.environ.get("DEBUG", "True").lower() == "true" else False
+        reload=debug,
+        workers=1 if debug else 4,
+        access_log=not debug,
+        log_level="info" if not debug else "debug"
     )
