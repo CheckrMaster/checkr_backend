@@ -56,18 +56,18 @@ async def health_check():
 
 
 # Include routers
-app.include_router(users.router, prefix="/api/v1")
-app.include_router(vehicles.router, prefix="/api/v1")
-app.include_router(orders.router, prefix="/api/v1")
-app.include_router(payments.router, prefix="/api/v1")
-app.include_router(invoices.router, prefix="/api/v1")
+app.include_router(users.router, prefix="/api")
+app.include_router(vehicles.router, prefix="/api")
+app.include_router(orders.router, prefix="/api")
+app.include_router(payments.router, prefix="/api")
+app.include_router(invoices.router, prefix="/api")
 
 
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
         "main:app",
-        host="0.0.0.0",
+        host="127.0.0.1",
         port=8000,
         reload=True
     )
