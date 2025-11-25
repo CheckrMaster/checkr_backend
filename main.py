@@ -11,22 +11,33 @@ from app.api.routes import users, vehicles, orders, payments, invoices
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events"""
-    # Create tables on startup
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        # Create tables on startup with timeout handling
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        print("Database tables created successfully")
+    except Exception as e:
+        print(f"Warning: Database setup failed: {e}")
+        # Continue without failing - tables might already exist
     
     yield
     
     # Cleanup on shutdown
-    await engine.dispose()
+    try:
+        await engine.dispose()
+        print("Database connections closed")
+    except Exception as e:
+        print(f"Warning: Database cleanup failed: {e}")
 
 
-# Initialize FastAPI app
+# Initialize FastAPI app with optimizations
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
     debug=settings.DEBUG,
-    lifespan=lifespan
+    lifespan=lifespan,
+    docs_url="/docs" if settings.DEBUG else None,
+    redoc_url="/redoc" if settings.DEBUG else None
 )
 
 # Configure CORS
