@@ -39,21 +39,21 @@ async def get_users(
     return users
 
 
-@router.get("/{user_id}", response_model=UserResponse)
+@router.get("/{user_email}", response_model=UserResponse)
 async def get_user(
-    user_id: UUID,
+    user_email: str,
     db: AsyncSession = Depends(get_db)
 ):
     """Get a specific user by ID"""
     result = await db.execute(
-        select(User).where(User.id == user_id)
+        select(User).where(User.email == user_email)
     )
     user = result.scalar_one_or_none()
     
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with id {user_id} not found"
+            detail=f"User with email {user_email} not found"
         )
     
     return user

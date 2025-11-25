@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, or_, and_
 from typing import List
 from uuid import UUID
 
@@ -39,21 +39,59 @@ async def get_vehicles(
     return vehicles
 
 
-@router.get("/{vehicle_id}", response_model=VehicleResponse)
-async def get_vehicle(
-    vehicle_id: UUID,
+@router.get("/search", response_model=List[VehicleResponse])
+async def search_vehicles(
+    regNo: str | None = None,
+    chassis: str | None = None,
+    engine: str | None = None,
     db: AsyncSession = Depends(get_db)
 ):
-    """Get a specific vehicle by ID"""
+    """Search vehicles by registration number, chassis, and/or engine number"""
+    if not any([regNo, chassis, engine]):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="At least one search parameter (regNo, chassis, or engine) must be provided"
+        )
+    
+    # Build query conditions
+    conditions = []
+    if regNo:
+        conditions.append(Vehicle.regNo.ilike(f"%{regNo}%"))
+    if chassis:
+        conditions.append(Vehicle.chassis.ilike(f"%{chassis}%"))
+    if engine:
+        conditions.append(Vehicle.engine.ilike(f"%{engine}%"))
+    
+    # Use OR condition to match any of the provided parameters
+    query = select(Vehicle).where(or_(*conditions))
+    
+    result = await db.execute(query)
+    vehicles = result.scalars().all()
+    
+    if not vehicles:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No vehicles found matching the search criteria"
+        )
+    
+    return vehicles
+
+
+@router.get("/{regNo}", response_model=VehicleResponse)
+async def get_vehicle(
+    regNo: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get a specific vehicle by registration number"""
     result = await db.execute(
-        select(Vehicle).where(Vehicle.id == vehicle_id)
+        select(Vehicle).where(Vehicle.regNo == regNo)
     )
     vehicle = result.scalar_one_or_none()
     
     if not vehicle:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Vehicle with id {vehicle_id} not found"
+            detail=f"Vehicle with regNo {regNo} not found"
         )
     
     return vehicle
